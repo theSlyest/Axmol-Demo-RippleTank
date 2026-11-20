@@ -1,152 +1,145 @@
-# Axmol Examples
+# Axmol Demo: Ripple Tank
 
-A collection of small games, gameplay mechanics, and technical demonstrations built with [Axmol Engine](https://axmol.dev/) and C++.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-The purpose of this repository is to provide compact, practical examples that can be studied, modified, and reused when learning Axmol or prototyping game mechanics.
+A small ripple game built with [Axmol Engine](https://axmol.dev/) and C++, written as a learning resource. A water surface is a mesh that ripples deform, and four contacts drift across it. Click the water to send a ripple, and score every contact it reaches. The wave physics and the game rules are plain C++ with no engine dependency, so they can be read and tested on their own, and the views only show what they are given.
 
-## Repository Structure
+![Gameplay screenshot](docs/screenshot.png)
 
-Each example is stored in its own Git branch.
+## Gameplay
 
-The `master` branch contains the base Axmol project used as a starting point. To explore an example, switch to the corresponding branch:
+- Click the surface to send a ripple. The first click on the water starts the round; clicks elsewhere do nothing.
+- Four orange **contacts** drift slowly across the water and bounce off its edges.
+- Every contact within 150 pixels of your click scores a point and reappears somewhere else, away from the ripple.
+- The round lasts **45 seconds** from your first click. Press **R** to restart at any time.
+- Ripples are real waves: they spread out, fade and add up when they overlap, so waves from several clicks interfere.
 
-```bash
-git clone https://github.com/theSlyest/AxmolExamples.git
-cd AxmolExamples
-git switch <example-branch>
-```
-
-For example:
-
-```bash
-git switch Minesweeper
-```
-
-You can list all available example branches with:
-
-```bash
-git branch --remotes
-```
-
-## Available Examples
-
-### Mini-games and puzzles
-
-| Branch         | Description                                                             |
-| -------------- | ----------------------------------------------------------------------- |
-| `Bomberman`    | A small game inspired by classic grid-based bomb mechanics.             |
-| `BrickBreaker` | A brick-breaking game with paddle, ball, and collision mechanics.       |
-| `Cooking`      | A cooking-themed gameplay prototype.                                    |
-| `CrossTheRoad` | A road-crossing game based on movement, timing, and obstacle avoidance. |
-| `DiskTower`    | A Tower of Hanoi-style puzzle.                                          |
-| `GridBalancer` | A grid-based balancing puzzle.                                          |
-| `Minesweeper`  | An implementation of the classic Minesweeper game.                      |
-| `Nonogram`     | A picture-logic puzzle based on row and column clues.                   |
-| `PegSolitaire` | An implementation of the classic peg solitaire puzzle.                  |
-| `Pentago`      | A board game featuring piece placement and rotating board sections.     |
-| `PoseMatch`    | A pose-matching gameplay prototype.                                     |
-| `Reversi`      | An implementation of the classic Reversi/Othello board game.            |
-| `RushHour`     | A sliding-block puzzle inspired by Rush Hour.                           |
-| `ShadowShape`  | A shape and shadow-matching game.                                       |
-| `Snake`        | An implementation of the classic Snake game.                            |
-| `Sudoku`       | An implementation of the classic number-placement puzzle.               |
-| `TetraStack`   | A block-stacking game using tetromino-like pieces.                      |
-| `WordGame`     | A word-based game prototype.                                            |
-
-### Action and gameplay mechanics
-
-| Branch             | Description                                                    |
-| ------------------ | -------------------------------------------------------------- |
-| `Escorting`        | An escort-oriented gameplay prototype.                         |
-| `LaserMirror`      | A laser-routing mechanic using reflective objects.             |
-| `RippleTank`       | A tank-based gameplay experiment featuring ripple effects.     |
-| `SideShooter`      | A side-view shooting game prototype.                           |
-| `SignalLock`       | A signal-based locking or synchronization mechanic.            |
-| `StealthDetection` | A demonstration of visibility and stealth-detection mechanics. |
-| `Teleporter`       | A teleportation gameplay mechanic.                             |
-
-### Technical and narrative examples
-
-| Branch        | Description                                                           |
-| ------------- | --------------------------------------------------------------------- |
-| `Clones`      | A gameplay experiment involving duplicated or synchronized entities.  |
-| `PathFinding` | A demonstration of pathfinding and grid navigation.                   |
-| `VisualNovel` | A basic visual-novel structure with narrative and dialogue mechanics. |
-
-> The examples are intentionally small and focused. They are designed as learning resources and prototypes rather than production-ready games.
+There are no image assets: the water's grid is drawn into a texture, and the contacts are drawn with `DrawNode`.
 
 ## Requirements
 
 * A C++ development environment
 * [CMake](https://cmake.org/) 3.22 or later
-* [Axmol Engine](https://github.com/axmolengine/axmol)
-* The platform-specific tools required by Axmol
+* [Axmol Engine](https://github.com/axmolengine/axmol) 2.x and the platform tools it requires
 
-The base project currently targets Axmol Engine **2.11.4**.
+Refer to the [Axmol documentation](https://axmol.dev/manual/latest/) for installation and platform setup.
 
-Refer to the [Axmol documentation](https://axmol.dev/manual/latest/) for engine installation and platform setup instructions.
+## Build and run
 
-## Building an Example
-
-First, install and configure Axmol Engine. Then clone this repository and select the example you want to build:
+Clone the repository, then use the Axmol command-line tools:
 
 ```bash
-git clone https://github.com/theSlyest/AxmolExamples.git
-cd AxmolExamples
-git switch <example-branch>
+git clone https://github.com/theSlyest/Axmol-Demo-RippleTank.git
+cd Axmol-Demo-RippleTank
+axmol run -p osx -a arm64    # build and launch on Apple Silicon macOS
 ```
 
-Build the project using the standard Axmol workflow for your target platform.
+Change `-p` (and `-a`) for your platform, for example `-p win32` or `-p linux`. To build without launching, use `axmol build` with the same options. The platform project folders (`proj.android`, `proj.ios_mac`, `proj.linux`, `proj.wasm`, `proj.win32`, `proj.winrt`) come from the Axmol project template.
 
-For example, after configuring the Axmol command-line tools:
+## How the code is organized
+
+The scene only builds nodes and connects them. The rules and the wave physics know nothing about nodes, and the views know nothing about the rules.
+
+```
+RippleTankScene        builds the nodes, wires everything, forwards update(dt),
+ │                     moves the contact nodes to where the game has them
+ ├─ TankGame           rules; calls onScoreChanged / onTimerChanged / onStateChanged
+ ├─ RippleControls     touches -> onTouch, R -> onRestart
+ ├─ Water              the mesh and its grid texture; draws the ripples of
+ │   │                 a RippleField, and locate(touch) / sendRipple(position)
+ │   ├─ RippleField    the ripples and the height of the surface at any point
+ │   └─ Contact ×4     a drawn disc each (children of the water)
+ ├─ RippleHud          score and timer labels
+ ├─ StartPrompt        "Click the surface to send a ripple"
+ └─ RoundOverLayer     the final score and "Press R to restart"
+```
+
+When the player touches the screen, `RippleControls` hands the touch to the scene. The scene asks `Water::locate` where it landed. Touches outside the water are ignored. On the water, the scene tells `TankGame` to start the round (the first touch only), sends the ripple with `Water::sendRipple` for the picture, and calls `TankGame::strike` for the score. Every frame, the scene lets the game advance and moves the contact nodes to its positions; the game's callbacks update the HUD and show or hide the layers.
+
+### The wave
+
+`RippleField` keeps the ripples and answers one question: how high is the surface at this point? A ripple spreads at 150 pixels per second and fades over one second. For every mesh vertex, each ripple that is close to it adds
+
+```
+cos((distance - radius) * 0.1) * amplitude * exp(-(|distance - radius| / 40)²)
+```
+
+where `distance` is the vertex's distance from the ripple's origin and `radius` is how far the ripple has spread. Only vertices within 120 pixels of the wave front move at all. `Water` calls this for each of its 35×35 vertices and sets the vertex's height, and skips the whole update when no ripple is on the water.
+
+The score does not wait for the wave to arrive: a click scores every contact within `RippleField::REACH`, which is the distance a ripple travels in its lifespan.
+
+### Try it: change the game
+
+The rules and the wave are constants and are easy to change:
+
+```cpp
+// TankGame.h
+static constexpr int START_TIME = 45;          // seconds per round
+static constexpr int CONTACT_COUNT = 4;
+static constexpr float CONTACT_SPEED = 16.0f;  // pixels per second
+
+// RippleField.h
+static constexpr float SPEED = 150.0f;         // how fast a ripple spreads
+static constexpr float LIFESPAN = 1.0f;        // and how long it lasts
+```
+
+A ripple's reach is its speed times its lifespan, so making ripples spread faster or last longer also makes them score from further away. For a predictable game while you experiment, give `TankGame` a fixed random source. It is called for every position and direction:
+
+```cpp
+// Every contact in the middle of the water, drifting to the right.
+_game = std::make_unique<TankGame>(size, [](float min, float max) { return (min + max) / 2.0f; });
+```
+
+## What this example shows
+
+| Concept | Where |
+| --- | --- |
+| Scene setup and wiring the parts together | `RippleTankScene` |
+| A mesh deformed every frame (`PolygonInfo` and `V3F_C4B_T2F` vertices on a `Sprite`) | `Water` |
+| A texture built from a pixel buffer | `Water::createSurface` |
+| Waves as a height function: a cosine around the wave front with a Gaussian envelope, added up over the ripples | `RippleField::heightAt` |
+| Wave physics with no engine dependency | `RippleField` |
+| Game rules with no engine dependency, reporting changes through callbacks | `TankGame` |
+| An injectable random source, so the rules can be tested deterministically | `TankGame::Random` |
+| Skipping work while the water is at rest | `Water::update` |
+| Touch and keyboard input turned into commands | `RippleControls` |
+| Views that only show the state they are given | `Water`, `Contact`, `RippleHud`, `StartPrompt`, `RoundOverLayer` |
+| Unit tests with doctest | `Tests/` |
+
+## Tests
+
+`RippleField` and `TankGame` have no nodes, so they run in a plain test program. `Tests/` uses [doctest](https://github.com/doctest/doctest), which Axmol bundles, and a scripted random source:
+
+- `RippleFieldTest`: ripples spreading, fading and expiring, aging separately, and the height of the surface (flat when calm, as high as the amplitude on the front, the same in every direction, dying away from the front, zero outside the window, and overlapping ripples adding up)
+- `TankGameTest`: the contacts scattered and drifting, nothing moving until the first touch, bouncing off all four edges, ripples scoring every contact reached (including one exactly at the reach) and sending it elsewhere, never respawning inside the reach, the timer, the round ending once, and reset
+
+Enable the test target when configuring, build it, and run the executable:
 
 ```bash
-axmol build
+axmol build -p osx -a arm64 -f -xc '-D_AX_TESTS=ON'
+cmake --build build --target Axmol-Demo-RippleTank_test --config RelWithDebInfo
+build/bin/Axmol-Demo-RippleTank_test/RelWithDebInfo/Axmol-Demo-RippleTank_test.app/Contents/MacOS/Axmol-Demo-RippleTank_test
 ```
 
-Available targets and build options may depend on your operating system and Axmol installation. Consult the Axmol build documentation for the appropriate platform-specific command.
+Pass `-D_AX_TESTS=OFF` when you are done to go back to building only the game.
 
-## Learning from the Examples
+## Source layout
 
-These projects may be useful for exploring topics such as:
-
-* Scene and node management
-* Touch, mouse, and keyboard input
-* Grid-based gameplay
-* Collision detection
-* Movement and animation
-* Board-game rules
-* Pathfinding
-* State management
-* Puzzle validation
-* User-interface implementation
-* Reusable gameplay components
-
-Because each example lives in an independent branch, its implementation can evolve without affecting the others.
-
-## Contributions
-
-Contributions, improvements, and bug fixes are welcome.
-
-If you would like to contribute:
-
-1. Fork the repository.
-2. Create a branch from the example you want to improve.
-3. Make and test your changes.
-4. Open a pull request describing the changes.
-
-For a new example, please keep the implementation compact and focused on a clearly identifiable game or technical concept.
+- `Source/RippleTankScene.*`: creates the nodes, connects them, and moves the contacts to where the game has them.
+- `Source/TankGame.*`: the contacts, the scoring, the timer and the three states of a round.
+- `Source/RippleField.*`: the ripples and the height of the surface.
+- `Source/Water.*`: the deformable mesh, its grid texture, and the ripple pictures.
+- `Source/Contact.*`: how a contact looks.
+- `Source/RippleControls.*`: touch and keyboard handling.
+- `Source/RippleHud.*`, `Source/StartPrompt.*`, `Source/RoundOverLayer.*`, `Source/Theme.h`: the labels, the two messages and the colors they share.
+- `Tests/`: unit tests for `RippleField` and `TankGame`.
 
 ## Disclaimer
 
-This repository is primarily intended for experimentation and education. The examples may simplify architecture, error handling, content pipelines, or platform-specific considerations in order to keep the demonstrated concepts easy to understand.
+This project is intended for experimentation and education. It simplifies architecture, error handling and content in order to keep the concepts easy to follow.
 
 ## License
 
-This repository is licensed under the MIT License.
-
-You are free to use, modify, and distribute the source code, including in
-commercial projects, provided that the original copyright notice and license
-are retained. See the [LICENSE](LICENSE) file for details.
+This repository is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 Third-party assets and dependencies may be subject to their own licenses.
